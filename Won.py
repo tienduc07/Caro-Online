@@ -1,4 +1,13 @@
-SIZE_TABLE = 20
+"""
+KIỂM TRA CHIẾN THẮNG - CARO ONLINE
+==================================
+Module kiểm tra điều kiện thắng trong game Caro.
+
+Luật thắng: Người chơi nào có 5 quân liên tiếp theo hàng ngang,
+dọc, hoặc chéo thì thắng.
+"""
+
+SIZE_TABLE = 15   
 
 
 def won(table):
