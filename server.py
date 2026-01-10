@@ -1,93 +1,99 @@
+"""
+SERVER CARO ONLINE
+==================
+File này chứa code phía server để quản lý các phòng chơi và kết nối giữa các người chơi.
+
+Chức năng chính:
+- Quản lý kết nối của người chơi
+- Ghép cặp người chơi vào phòng
+- Chuyển tiếp các nước đi giữa 2 người chơi
+- Xử lý yêu cầu chơi lại và đổi quân
+"""
+
 import socket
 import threading
-import json
-FORMAT = 'utf8'
 
-data_list1 = []
-data_list2 = []
+FORMAT = 'utf8'  
 
 
-def get_player2(conn):
-    player2 = None
-    if conn in data_list1:
-        index = data_list1.index(conn)
-        if index < len(data_list2):
-            player2 = data_list2[index]
-    else:
-        index = data_list2.index(conn)
-        if index < len(data_list1):
-            player2 = data_list1[index]
-    return player2
+game_rooms = {}
+player_to_room = {}
+room_counter = 0 
+waiting_player = None 
 
 
-def handleClient(conn, addr):
-    # with every client side
-    player2 = None
-    global data_list1, data_list2
-
-    while True:
-        try:
-            msg = conn.recv(1024).decode(FORMAT)
-        except:
-            print('[CLOSE]', addr)
-            conn.close()
-            break
-        msg = msg.split(" ")
-        if msg[0] == 'USERNAME':
-            if len(data_list1) <= len(data_list2):
-                data_list1.append(conn)
-                conn.sendall('PLAYER 1'.encode(FORMAT))
-            else:
-                data_list2.append(conn)
-                conn.sendall('PLAYER 2'.encode(FORMAT))
-            print(msg[1], 'connected')
-
-        if (msg[0] == 'EXIT'):
-            print('[CLOSE]', addr)
-            conn.close()
-            return
-        if (msg[0] == 'EXIT2'):
-            print('[CLOSE]', addr)
-            player2 = get_player2(conn)
-            if player2 is None:
-                return
-            # player2.sendall('EXIT2'.encode(FORMAT))
-            conn.close()
-            return
-        if (msg[0] == 'TICK'):
-            print(msg)
-            player2 = get_player2(conn)
-            if player2 is None:
-                return
-            player2.sendall(f"TICK {msg[1]} {msg[2]} {msg[3]}".encode(FORMAT))
+def get_opponent(conn):
+    room_id = player_to_room.get(conn)
+    if room_id and room_id in game_rooms:
+        room = game_rooms[room_id]
+        if room['player1'] == conn:
+            return room['player2']
+        elif room['player2'] == conn:
+            return room['player1']
+    return None
 
 
-HOST = '127.0.0.1'
-SERVER_ROOT = 65432
-FORMAT = 'utf8'
+def is_player1(conn):
+    room_id = player_to_room.get(conn)
+    if room_id and room_id in game_rooms:
+        return game_rooms[room_id]['player1'] == conn
+    return False
 
+
+def remove_player(conn):
+    global waiting_player
+    room_id = player_to_room.get(conn)
+    if room_id and room_id in game_rooms:
+        del player_to_room[conn]
+        room = game_rooms[room_id]
+        
+        opponent = None
+        if room['player1'] == conn:
+            opponent = room['player2']
+        elif room['player2'] == conn:
+            opponent = room['player1']
+        
+        if opponent:
+            try:
+                opponent.sendall('OPPONENT_LEFT'.encode(FORMAT))
+            except:
+                pass
+            if opponent in player_to_room:
+                del player_to_room[opponent]
+        
+        del game_rooms[room_id]
+    
+    if waiting_player == conn:
+        waiting_player = None
+
+
+
+
+# === CẤU HÌNH SERVER ===
+HOST = '127.0.0.1'  
+SERVER_ROOT = 65432  
+
+# Tạo socket TCP
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# SOCK_STREAM
-s.bind((HOST, SERVER_ROOT))
-s.listen(10)
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  
+s.bind((HOST, SERVER_ROOT)) 
+s.listen(10) 
 
-print('SERVER SIDE')
-print('server: ', HOST, SERVER_ROOT)
-print('Waiting for Client')
+print('=== CARO ONLINE SERVER ===')
+print(f'Server: {HOST}:{SERVER_ROOT}')
+print('Đang chờ người chơi kết nối...')
 
-nClient = 0
-while nClient < 10:
+# === VÒNG LẶP CHÍNH - CHẤP NHẬN KẾT NỐI ===
+while True:
     try:
-        conn, addr = s.accept()  # wait client connect
-        # conn nhan va trao doi duong truyen
-        # addr lay dia chi client
+        conn, addr = s.accept()
         thr = threading.Thread(target=handleClient, args=(conn, addr))
-        thr.daemon = True  # kill thr
+        thr.daemon = True  
         thr.start()
-
     except socket.error as err:
-        print('error', err)
+        print('Lỗi:', err)
+    except KeyboardInterrupt:
+        print('\nServer đã dừng')
+        break
 
-    nClient += 1
-
-s.close()
+s.close()  
