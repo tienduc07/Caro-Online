@@ -180,3 +180,168 @@ def run_game():
             client.sendall('GAMEOVER'.encode(FORMAT))
             ok = False
             game_status = 'gameover'
+
+import pygame
+import sys
+
+# === BẢNG MÀU GIAO DIỆN (Catppuccin Style) ===
+DARK_BG = (30, 30, 46)          # Màu nền tối chính
+LIGHT_BG = (45, 45, 65)         # Màu nền sáng hơn
+ACCENT_BLUE = (137, 180, 250)   # Màu xanh dương (quân O)
+ACCENT_PINK = (245, 194, 231)   # Màu hồng (quân X)
+ACCENT_GREEN = (166, 227, 161)  # Màu xanh lá (thắng)
+ACCENT_RED = (243, 139, 168)    # Màu đỏ (thua)
+ACCENT_YELLOW = (249, 226, 175) # Màu vàng (chờ)
+ACCENT_ORANGE = (250, 179, 135) # Màu cam
+WHITE = (205, 214, 244)         # Màu chữ
+GRAY = (108, 112, 134)          # Màu xám
+DARK_GRAY = (69, 71, 90)
+GRID_COLOR = (88, 91, 112)      # Màu đường kẻ
+
+# === HẰNG SỐ KÍCH THƯỚC ===
+CELL_SIZE = 40
+BOARD_PADDING = 50
+HEADER_HEIGHT = 100
+BOARD_WIDTH = SIZE_TABLE * CELL_SIZE
+BOARD_HEIGHT = SIZE_TABLE * CELL_SIZE
+SCREEN_WIDTH = BOARD_WIDTH + BOARD_PADDING * 2
+SCREEN_HEIGHT = BOARD_HEIGHT + BOARD_PADDING + HEADER_HEIGHT
+X_START = BOARD_PADDING
+Y_START = HEADER_HEIGHT
+
+
+# Vẽ hình chữ nhật bo góc
+def draw_rounded_rect(surface, color, rect, radius=10):
+    pygame.draw.rect(surface, color, rect, border_radius=radius)
+
+
+# Vẽ header hiển thị tên và trạng thái
+def draw_header():
+    draw_rounded_rect(screen, LIGHT_BG, (10, 10, SCREEN_WIDTH - 20, HEADER_HEIGHT - 20), 15)
+    
+    # Player symbol indicator
+    symbol_x = 30
+    symbol_y = 25
+    symbol_size = 40
+    
+    if w == 'X':
+        pygame.draw.rect(screen, ACCENT_PINK, (symbol_x, symbol_y, symbol_size, symbol_size), border_radius=8)
+        draw_x(symbol_x + symbol_size // 2, symbol_y + symbol_size // 2, symbol_size // 3)
+        role_text = "(Đi trước)"
+    else:
+        pygame.draw.rect(screen, ACCENT_BLUE, (symbol_x, symbol_y, symbol_size, symbol_size), border_radius=8)
+        draw_o(symbol_x + symbol_size // 2, symbol_y + symbol_size // 2, symbol_size // 3)
+        role_text = "(Đi sau)"
+    
+    name_text = title_font.render(player, True, WHITE)
+    screen.blit(name_text, (symbol_x + symbol_size + 15, symbol_y))
+    
+    role_surface = small_font.render(role_text, True, GRAY)
+    screen.blit(role_surface, (symbol_x + symbol_size + 15, symbol_y + 32))
+    
+    # Turn indicator
+    if game_status == 'waiting':
+        turn_text = "CHỜ ĐỐI THỦ..."
+        turn_color = ACCENT_ORANGE
+    elif game_status == 'playing':
+        if turned:
+            turn_text = "LƯỢT CỦA BẠN"
+            turn_color = ACCENT_GREEN
+        else:
+            turn_text = "ĐỢI ĐỐI THỦ..."
+            turn_color = ACCENT_YELLOW
+    else:
+        turn_text = "KẾT THÚC"
+        turn_color = GRAY
+    
+    turn_rect_width = 180
+    turn_rect_x = SCREEN_WIDTH - turn_rect_width - 20
+    draw_rounded_rect(screen, turn_color, (turn_rect_x, 25, turn_rect_width, 50), 10)
+    
+    turn_surface = turn_font.render(turn_text, True, DARK_BG)
+    turn_rect = turn_surface.get_rect(center=(turn_rect_x + turn_rect_width // 2, 50))
+    screen.blit(turn_surface, turn_rect)
+
+
+# Vẽ quân X màu hồng
+def draw_x(cx, cy, size):
+    thickness = 4
+    pygame.draw.line(screen, ACCENT_PINK, (cx - size, cy - size), (cx + size, cy + size), thickness)
+    pygame.draw.line(screen, ACCENT_PINK, (cx + size, cy - size), (cx - size, cy + size), thickness)
+
+
+# Vẽ quân O màu xanh
+def draw_o(cx, cy, size):
+    pygame.draw.circle(screen, ACCENT_BLUE, (cx, cy), size, 4)
+
+
+# Vẽ bàn cờ 15x15
+def draw_board():
+    board_rect = (X_START - 5, Y_START - 5, BOARD_WIDTH + 10, BOARD_HEIGHT + 10)
+    draw_rounded_rect(screen, LIGHT_BG, board_rect, 10)
+    
+    # Vẽ lưới
+    for i in range(SIZE_TABLE + 1):
+        x = X_START + i * CELL_SIZE
+        pygame.draw.line(screen, GRID_COLOR, (x, Y_START), (x, Y_START + BOARD_HEIGHT), 1)
+        y = Y_START + i * CELL_SIZE
+        pygame.draw.line(screen, GRID_COLOR, (X_START, y), (X_START + BOARD_WIDTH, y), 1)
+    
+    # Vẽ quân cờ
+    for i in range(SIZE_TABLE):
+        for j in range(SIZE_TABLE):
+            cx = X_START + i * CELL_SIZE + CELL_SIZE // 2
+            cy = Y_START + j * CELL_SIZE + CELL_SIZE // 2
+            
+            if table[i][j] == 'X':
+                pygame.draw.rect(screen, (80, 60, 80), 
+                               (X_START + i * CELL_SIZE + 2, Y_START + j * CELL_SIZE + 2, 
+                                CELL_SIZE - 4, CELL_SIZE - 4), border_radius=5)
+                draw_x(cx, cy, CELL_SIZE // 3)
+            elif table[i][j] == 'O':
+                pygame.draw.rect(screen, (60, 70, 90), 
+                               (X_START + i * CELL_SIZE + 2, Y_START + j * CELL_SIZE + 2, 
+                                CELL_SIZE - 4, CELL_SIZE - 4), border_radius=5)
+                draw_o(cx, cy, CELL_SIZE // 3)
+
+
+# Vẽ màn hình chờ đối thủ
+def draw_waiting_screen():
+    overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+    overlay.fill((0, 0, 0, 180))
+    screen.blit(overlay, (0, 0))
+    
+    box_width = 400
+    box_height = 200
+    box_x = (SCREEN_WIDTH - box_width) // 2
+    box_y = (SCREEN_HEIGHT - box_height) // 2
+    
+    draw_rounded_rect(screen, LIGHT_BG, (box_x, box_y, box_width, box_height), 20)
+    draw_rounded_rect(screen, DARK_GRAY, (box_x + 5, box_y + 5, box_width - 10, box_height - 10), 18)
+    
+    wait_text = big_font.render("Đang chờ đối thủ...", True, ACCENT_YELLOW)
+    wait_rect = wait_text.get_rect(center=(SCREEN_WIDTH // 2, box_y + 80))
+    screen.blit(wait_text, wait_rect)
+    
+    sub_text = small_font.render("Vui lòng đợi người chơi khác tham gia", True, GRAY)
+    sub_rect = sub_text.get_rect(center=(SCREEN_WIDTH // 2, box_y + 130))
+    screen.blit(sub_text, sub_rect)
+
+
+# Vẽ màn hình kết thúc game
+def draw_game_over_screen():
+    # ... (code hiển thị kết quả và nút chơi lại/thoát)
+    pass
+
+
+# === KHỞI TẠO PYGAME ===
+pygame.init()
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Caro Online - Game Cờ Caro")
+clock = pygame.time.Clock()
+
+# Thiết lập font chữ
+title_font = pygame.font.SysFont("Segoe UI", 24, bold=True)
+turn_font = pygame.font.SysFont("Segoe UI", 18, bold=True)
+big_font = pygame.font.SysFont("Segoe UI", 32, bold=True)
+small_font = pygame.font.SysFont("Segoe UI", 16)
