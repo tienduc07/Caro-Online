@@ -128,11 +128,11 @@ Caro-Online/
 
 ### Người chơi 1
 
-![Player 1](./img/Player1.png)
+![Player 1](./img/player1.png)
 
 ### Người chơi 2
 
-![Player 2](./img/Player2.png)
+![Player 2](./img/player2.png)
 
 ## 👨‍💻 Tác giả
 
