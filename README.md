@@ -15,7 +15,9 @@ Caro (Gomoku) là trò chơi dân gian quen thuộc với mọi người, đặc
 - 🔄 Chức năng chơi lại sau khi kết thúc ván
 - 🔀 Tự động đổi quân X/O khi chơi lại
 - 👥 Hiển thị vai trò "Đi trước" / "Đi sau"
+- � Tìm đối thủ mới khi đối thủ thoát giữa chừng
 - 📡 Kết nối qua mạng LAN (TCP/IP)
+- 🚀 Script tự động cài đặt và khởi động game
 
 ## 🛠️ Yêu cầu hệ thống
 
@@ -87,9 +89,14 @@ cd "đường-dẫn-đến-thư-mục/Caro-Online"
 python game.py
 ```
 
-### Cách 2: Chạy tự động (Khuyến nghị)
+### Cách 2: Chạy tự động (Khuyến nghị) ⭐
 
-Double-click file `run_game.bat` để khởi động cả Server và 2 Client tự động.
+Double-click file `run_game.bat` để khởi động game.
+
+**Script sẽ tự động:**
+1. ✅ Kiểm tra và tạo môi trường ảo `.venv` nếu chưa có
+2. ✅ Cài đặt thư viện từ `requirements.txt` nếu chưa cài
+3. ✅ Khởi động 1 Server + 3 Client trong các Terminal riêng biệt
 
 > 💡 **Mẹo:** Nếu dùng VS Code, có thể mở 3 Terminal bằng cách click nút **+** ở góc Terminal.
 
@@ -115,6 +122,7 @@ Caro-Online/
 4. Click vào ô trống để đặt quân
 5. Ai có 5 quân liên tiếp trước sẽ thắng
 6. Sau khi kết thúc, có thể chọn **Chơi lại** hoặc **Thoát**
+7. Nếu đối thủ thoát, có thể nhấn **Tìm đối thủ mới** để được ghép cặp với người chơi khác
 
 ## 📸 Ảnh minh họa
 
@@ -249,8 +257,10 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 ---
 
-### 8. Game đứng yên, không phản hồi
+### 8. Đối thủ thoát giữa chừng
 
 **Nguyên nhân:** Đối thủ đã thoát hoặc mất kết nối
 
-**Cách khắc phục:** Đóng game và khởi động lại từ đầu
+**Cách khắc phục:** 
+- Nhấn nút **Tìm đối thủ mới** để được ghép cặp với người chơi khác đang chờ
+- Hoặc nhấn **Thoát game** để đóng game

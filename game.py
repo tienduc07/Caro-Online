@@ -266,6 +266,7 @@ def draw_game_over_screen():
     quit_btn = None
     accept_btn = None
     decline_btn = None
+    find_new_btn = None
     
     # Different UI based on restart state
     if opponent_wants_restart and not waiting_for_restart:
@@ -308,6 +309,20 @@ def draw_game_over_screen():
         play_text = turn_font.render("CHƠI LẠI", True, DARK_BG)
         screen.blit(play_text, play_text.get_rect(center=play_again_btn.center))
     
+    elif game_result == 'opponent_left':
+        # Đối thủ đã thoát - hiển thị nút tìm đối thủ mới
+        btn_y = box_y + 170
+        find_new_btn = pygame.Rect(btn_x, btn_y, btn_width, btn_height)
+        
+        if find_new_btn.collidepoint(mouse_pos):
+            btn_color = ACCENT_GREEN
+        else:
+            btn_color = ACCENT_BLUE
+        
+        draw_rounded_rect(screen, btn_color, find_new_btn, 12)
+        find_text = turn_font.render("TÌM ĐỐI THỦ MỚI", True, DARK_BG)
+        screen.blit(find_text, find_text.get_rect(center=find_new_btn.center))
+    
     # Quit button (always shown)
     quit_btn_y = box_y + 280 if (opponent_wants_restart or waiting_for_restart) else box_y + 240
     quit_btn = pygame.Rect(btn_x, quit_btn_y, btn_width, btn_height)
@@ -316,7 +331,7 @@ def draw_game_over_screen():
     quit_text = turn_font.render("THOÁT GAME", True, WHITE)
     screen.blit(quit_text, quit_text.get_rect(center=quit_btn.center))
     
-    return play_again_btn, quit_btn, accept_btn, decline_btn
+    return play_again_btn, quit_btn, accept_btn, decline_btn, find_new_btn
 
 
 # Xác định ô nào được click dựa trên tọa độ chuột, trả về (i,j) hoặc (-1,-1)
@@ -465,11 +480,11 @@ def run_game():
         # Draw overlays based on game status
         if game_status == 'waiting':
             draw_waiting_screen()
-            play_again_btn = quit_btn = accept_btn = decline_btn = None
+            play_again_btn = quit_btn = accept_btn = decline_btn = find_new_btn = None
         elif game_status == 'gameover':
-            play_again_btn, quit_btn, accept_btn, decline_btn = draw_game_over_screen()
+            play_again_btn, quit_btn, accept_btn, decline_btn, find_new_btn = draw_game_over_screen()
         else:
-            play_again_btn = quit_btn = accept_btn = decline_btn = None
+            play_again_btn = quit_btn = accept_btn = decline_btn = find_new_btn = None
         
         # Event handling
         for event in pygame.event.get():
@@ -498,6 +513,14 @@ def run_game():
                         # Request restart
                         client.sendall('RESTART_REQUEST'.encode(FORMAT))
                         waiting_for_restart = True
+                    
+                    elif find_new_btn and find_new_btn.collidepoint(pos):
+                        # Tìm đối thủ mới khi đối thủ cũ đã thoát
+                        client.sendall('FIND_NEW_OPPONENT'.encode(FORMAT))
+                        game_status = 'waiting'
+                        reset_table()
+                        game_result = None
+                        ok = True
                         
                     elif quit_btn and quit_btn.collidepoint(pos):
                         client.sendall('EXIT'.encode(FORMAT))

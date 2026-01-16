@@ -170,6 +170,47 @@ def handleClient(conn, addr):
                 if opponent:
                     opponent.sendall('RESTART_DECLINED'.encode(FORMAT))
                 room['restart_requests'].clear()
+        
+        # === XỬ LÝ TÌM ĐỐI THỦ MỚI ===
+        elif msg[0] == 'FIND_NEW_OPPONENT':
+            # Xóa người chơi khỏi phòng cũ (nếu có)
+            room_id = player_to_room.get(conn)
+            if room_id and room_id in game_rooms:
+                del player_to_room[conn]
+                # Xóa phòng nếu không còn ai
+                room = game_rooms[room_id]
+                if room['player1'] == conn:
+                    room['player1'] = None
+                elif room['player2'] == conn:
+                    room['player2'] = None
+                # Xóa phòng nếu cả 2 đều rời
+                if room['player1'] is None and room['player2'] is None:
+                    del game_rooms[room_id]
+            
+            # Đưa người chơi vào hàng đợi
+            if waiting_player is None:
+                waiting_player = conn
+                conn.sendall('WAITING'.encode(FORMAT))
+                print(f'[TÌM ĐỐI THỦ MỚI] Người chơi từ {addr} đang chờ ghép cặp')
+            else:
+                # Ghép cặp ngay lập tức
+                room_counter += 1
+                room_id = room_counter
+                
+                game_rooms[room_id] = {
+                    'player1': waiting_player,
+                    'player2': conn,
+                    'restart_requests': set(),
+                    'current_x_player': waiting_player
+                }
+                player_to_room[waiting_player] = room_id
+                player_to_room[conn] = room_id
+                
+                waiting_player.sendall('START X'.encode(FORMAT))
+                conn.sendall('START O'.encode(FORMAT))
+                
+                print(f'[GHÉP CẶP MỚI] Phòng {room_id} đã bắt đầu')
+                waiting_player = None
 
 
 # === CẤU HÌNH SERVER ===
