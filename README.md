@@ -28,6 +28,7 @@ Caro (Gomoku) là trò chơi dân gian quen thuộc với mọi người, đặc
 
 ```bash
 # Tạo môi trường ảo
+py -3.14 -m venv .venv
 python -m venv .venv
 
 # Kích hoạt môi trường ảo

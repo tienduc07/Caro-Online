@@ -8,10 +8,10 @@ cd /d %~dp0
 :: Kiem tra moi truong ao da ton tai chua
 if not exist ".venv" (
     echo Khong tim thay moi truong ao. Dang tao...
-    python -m venv .venv
+    py -3.14 -m venv .venv
     if errorlevel 1 (
         echo LOI: Khong the tao moi truong ao!
-        echo Vui long kiem tra Python da duoc cai dat chua.
+        echo Vui long kiem tra Python 3.14 da duoc cai dat chua.
         pause
         exit /b 1
     )
